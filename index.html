@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>員工飲品練習</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #F2EDE8; font-family: 'PingFang TC', 'Noto Sans TC', sans-serif; min-height: 100vh; padding: 20px 16px 40px; }
+.header { text-align: center; margin-bottom: 22px; }
+.header-sub { font-size: 10px; letter-spacing: 5px; color: #999; margin-bottom: 5px; }
+.header-main { font-size: 24px; font-weight: 900; color: #1A1A1A; letter-spacing: 2px; }
+.mode-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.mode-btn { padding: 10px 22px; border-radius: 30px; border: 2px solid #DDD; background: white; color: #666; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; transition: all .2s; }
+.mode-btn.active { background: #1A1A1A; border-color: #1A1A1A; color: white; }
+.score-bar { max-width: 460px; margin: 0 auto 18px; display: flex; justify-content: space-between; align-items: center; }
+.score-pill { background: white; border-radius: 20px; padding: 5px 16px; font-size: 12px; font-weight: 800; color: #444; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+.score-pill span { color: #E8426A; font-size: 15px; }
+.card { max-width: 460px; margin: 0 auto; background: white; border-radius: 24px; box-shadow: 0 6px 30px rgba(0,0,0,.10); overflow: hidden; }
+.card-top { padding: 20px 22px 16px; border-bottom: 3px solid; }
+.drink-row { display: flex; align-items: center; gap: 12px; }
+.drink-emoji { font-size: 46px; line-height: 1; }
+.drink-name { font-size: 19px; font-weight: 900; color: #111; }
+.drink-tag { font-size: 9px; letter-spacing: 3px; color: #AAA; margin-bottom: 3px; }
+.progress-wrap { margin-top: 8px; height: 5px; background: #EEE; border-radius: 10px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 10px; transition: width .4s; }
+.question-area { padding: 22px 22px 8px; }
+.q-label { font-size: 10px; letter-spacing: 4px; color: #BBB; font-weight: 800; margin-bottom: 10px; }
+.q-text { font-size: 16px; font-weight: 800; color: #1A1A1A; line-height: 1.6; margin-bottom: 18px; }
+.blank-input { border: none; border-bottom: 2.5px solid #CCC; background: transparent; font-family: inherit; font-size: 16px; font-weight: 800; color: #E8426A; width: 90px; text-align: center; outline: none; transition: border-color .2s; padding: 2px 4px; }
+.blank-input:focus { border-color: #E8426A; }
+.blank-input.correct { border-color: #22C55E; color: #22C55E; }
+.blank-input.wrong { border-color: #EF4444; color: #EF4444; }
+.choices { display: flex; flex-direction: column; gap: 9px; padding: 0 22px 8px; }
+.choice { padding: 12px 16px; border-radius: 14px; border: 2px solid #EEE; background: #FAFAFA; font-size: 14px; font-weight: 700; color: #333; cursor: pointer; font-family: inherit; text-align: left; transition: all .15s; }
+.choice:hover:not(:disabled) { border-color: #CCC; background: #F0EDEA; }
+.choice.correct { border-color: #22C55E !important; background: #F0FDF4 !important; color: #166534 !important; }
+.choice.wrong { border-color: #EF4444 !important; background: #FEF2F2 !important; color: #991B1B !important; }
+.drag-area { padding: 0 22px 12px; }
+.drag-label { font-size: 10px; letter-spacing: 3px; color: #BBB; font-weight: 800; margin-bottom: 10px; }
+.drop-slots { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.drop-slot { min-height: 46px; border: 2px dashed #CCC; border-radius: 12px; padding: 8px 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #AAA; transition: all .2s; }
+.drop-slot.over { border-color: #E8426A; background: #FFF0F3; }
+.drop-slot.filled { border-style: solid; border-color: #DDD; background: #FAFAFA; color: #333; font-weight: 700; }
+.drop-slot.correct { border-color: #22C55E !important; background: #F0FDF4 !important; color: #166534 !important; }
+.drop-slot.wrong { border-color: #EF4444 !important; background: #FEF2F2 !important; color: #991B1B !important; }
+.slot-num { width: 26px; height: 26px; border-radius: 50%; background: #EEE; color: #888; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+.drag-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 8px 14px; border-radius: 20px; border: 2px solid #DDD; background: white; font-size: 13px; font-weight: 700; color: #333; cursor: grab; font-family: inherit; transition: all .15s; user-select: none; }
+.chip:hover { border-color: #BBB; transform: scale(1.03); }
+.chip.used { opacity: .3; cursor: not-allowed; pointer-events: none; }
+.chip.dragging { opacity: .5; }
+.action-row { padding: 14px 22px 22px; display: flex; gap: 10px; }
+.btn { flex: 1; padding: 13px; border-radius: 14px; border: none; font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; transition: all .15s; }
+.btn-check { color: white; }
+.btn-next { background: #F0EDEA; color: #666; }
+.btn-next:hover { background: #E5E0DB; }
+.feedback { margin: 0 22px 12px; padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; line-height: 1.7; display: none; white-space: pre-line; }
+.feedback.show { display: block; }
+.feedback.ok { background: #F0FDF4; color: #166534; border: 1.5px solid #86EFAC; }
+.feedback.bad { background: #FEF2F2; color: #991B1B; border: 1.5px solid #FCA5A5; }
+.result-screen { display: none; max-width: 460px; margin: 0 auto; text-align: center; padding: 32px 24px; background: white; border-radius: 24px; box-shadow: 0 6px 30px rgba(0,0,0,.10); }
+.result-screen.show { display: block; }
+.result-emoji { font-size: 64px; margin-bottom: 12px; }
+.result-title { font-size: 22px; font-weight: 900; color: #1A1A1A; margin-bottom: 8px; }
+.result-score { font-size: 48px; font-weight: 900; margin-bottom: 6px; }
+.result-msg { font-size: 14px; color: #777; margin-bottom: 24px; line-height: 1.7; }
+.result-breakdown { text-align: left; background: #FAFAFA; border-radius: 14px; padding: 14px 16px; margin-bottom: 20px; }
+.breakdown-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #EEE; font-size: 12px; color: #555; gap: 8px; }
+.breakdown-row:last-child { border: none; }
+.breakdown-result { font-weight: 800; font-size: 14px; flex-shrink: 0; }
+.btn-restart { width: 100%; padding: 14px; border-radius: 14px; border: none; background: #1A1A1A; color: white; font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+.note-tag { display: inline-block; background: #FFF3CD; color: #856404; border-radius: 8px; font-size: 11px; font-weight: 700; padding: 2px 8px; margin-left: 6px; }
+</style>
+</head>
+<body>
+
+<!-- 密碼畫面 -->
+<div id="password-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:24px;box-shadow:0 6px 30px rgba(0,0,0,.10);padding:40px 32px;max-width:340px;width:100%;text-align:center;">
+    <div style="font-size:48px;margin-bottom:14px">🔒</div>
+    <div style="font-size:11px;letter-spacing:5px;color:#999;margin-bottom:6px">STAFF TRAINING</div>
+    <div style="font-size:22px;font-weight:900;color:#1A1A1A;letter-spacing:2px;margin-bottom:24px">飲品 SOP 練習</div>
+    <div style="font-size:13px;color:#888;margin-bottom:12px;font-weight:600">請輸入員工密碼</div>
+    <input id="pw-input" type="password" placeholder="••••"
+      style="width:100%;padding:14px;border-radius:14px;border:2px solid #EEE;font-size:22px;text-align:center;letter-spacing:8px;font-family:inherit;outline:none;margin-bottom:12px;transition:border-color .2s"
+      onkeydown="if(event.key==='Enter')checkPw()"
+      oninput="document.getElementById('pw-error').style.display='none';this.style.borderColor='#EEE'"
+    >
+    <div id="pw-error" style="display:none;color:#EF4444;font-size:13px;font-weight:700;margin-bottom:10px">❌ 密碼錯誤，請再試一次</div>
+    <button onclick="checkPw()" style="width:100%;padding:14px;border-radius:14px;border:none;background:#E8426A;color:white;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;">進入練習 →</button>
+  </div>
+</div>
+
+<!-- 主畫面（預設隱藏） -->
+<div id="main-screen" style="display:none">
+
+<div class="header">
+  <div class="header-sub">STAFF TRAINING</div>
+  <div class="header-main">飲品 SOP 練習</div>
+</div>
+
+<div class="mode-row">
+  <button class="mode-btn active" onclick="setMode('choice')" id="mode-choice">🎯 選擇題</button>
+  <button class="mode-btn" onclick="setMode('fill')" id="mode-fill">✏️ 填空題</button>
+
+</div>
+
+<div class="score-bar">
+  <div class="score-pill">第 <span id="q-num">1</span> / <span id="q-total">?</span> 題</div>
+  <div class="score-pill">✅ <span id="score">0</span> 分</div>
+</div>
+
+<div class="card" id="quiz-card"></div>
+<div class="result-screen" id="result-screen"></div>
+
+</div><!-- end main-screen -->
+
+<script>
+function checkPw() {
+  const val = document.getElementById('pw-input').value;
+  if (val === '5200') {
+    document.getElementById('password-screen').style.display = 'none';
+    document.getElementById('main-screen').style.display = 'block';
+    startQuiz();
+  } else {
+    document.getElementById('pw-error').style.display = 'block';
+    document.getElementById('pw-input').style.borderColor = '#EF4444';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+const drinks = [
+  { name:"草莓牛奶", emoji:"🍓", tag:"草莓系", color:"#E8426A", lightBg:"#FFF0F3" },
+  { name:"草莓雷夢", emoji:"🍋", tag:"酸甜系", color:"#E8A020", lightBg:"#FFFBF0" },
+  { name:"草莓醋飲", emoji:"🍇", tag:"醋飲系", color:"#7C3FC4", lightBg:"#F6F0FF" },
+];
+
+const questionBank = {
+  choice: [
+    // 草莓牛奶
+    { drinkIdx:0, q:"草莓牛奶的冷凍草莓用量是？", correct:"150g", options:["140g","150g","160g","120g"] },
+    { drinkIdx:0, q:"草莓牛奶需要加多少牛奶？", correct:"120cc", options:["100cc","120cc","150cc","80cc"] },
+    { drinkIdx:0, q:"草莓牛奶的草莓果醬用量？", correct:"30cc", options:["20cc","30cc","50cc","60cc"] },
+    { drinkIdx:0, q:"草莓牛奶的冰水用量？", correct:"180cc", options:["150cc","180cc","200cc","220cc"] },
+    { drinkIdx:0, q:"草莓牛奶的甜度設定是？", correct:"正3 / 減1", options:["正2","正3 / 減1","固定2","正4"] },
+    { drinkIdx:0, q:"草莓牛奶打冰沙時，牛奶要怎麼加？", correct:"和糖、草莓、水一起加入冰沙機打", options:["和糖、草莓、水一起加入冰沙機打","打好冰沙後再加入","先倒瓶底再加冰沙","最後單獨打一次"] },
+    { drinkIdx:0, q:"草莓牛奶組合時瓶底放什麼？", correct:"果醬", options:["牛奶","糖","果醬","草莓"] },
+    // 草莓雷夢
+    { drinkIdx:1, q:"草莓雷夢的檸檬汁用量？", correct:"20cc", options:["10cc","20cc","30cc","40cc"] },
+    { drinkIdx:1, q:"草莓雷夢的草莓果醬用量？", correct:"60cc", options:["30cc","40cc","60cc","80cc"] },
+    { drinkIdx:1, q:"草莓雷夢碎冰水：使用500量杯倒入冰水＿＿＿ml → 冰塊至＿＿＿ml，請選正確組合", correct:"冰水 250ml → 冰塊至 450ml", options:["冰水 200ml → 冰塊至 400ml","冰水 250ml → 冰塊至 450ml","冰水 300ml → 冰塊至 500ml","冰水 250ml → 冰塊至 500ml"] },
+    { drinkIdx:1, q:"草莓雷夢冰沙機打碎冰水需幾下？", correct:"3-4下", options:["1-2下","2-3下","3-4下","5下以上"] },
+    { drinkIdx:1, q:"草莓雷夢特別注意：量杯加的必須是？", correct:"冰水（不能用常溫水）", options:["常溫水","溫水","冰水（不能用常溫水）","過濾水"] },
+    { drinkIdx:1, q:"草莓雷夢組合時瓶底放？", correct:"糖＋檸檬＋果醬", options:["糖＋果醬","糖＋檸檬＋果醬","直接倒冰沙水","檸檬＋牛奶"] },
+    // 草莓醋飲
+    { drinkIdx:2, q:"草莓醋飲的果醋用量？", correct:"60cc", options:["30cc","40cc","60cc","80cc"] },
+    { drinkIdx:2, q:"草莓醋飲的草莓果醬用量？", correct:"30cc", options:["20cc","30cc","50cc","60cc"] },
+    { drinkIdx:2, q:"草莓醋飲的甜度設定是？", correct:"固定甜度 2", options:["正3 / 減1","固定甜度 2","正2","固定甜度 3"] },
+    { drinkIdx:2, q:"草莓醋飲碎冰水：使用500量杯倒入冰水＿＿＿ml → 冰塊至＿＿＿ml，請選正確組合", correct:"冰水 250ml → 冰塊至 450ml", options:["冰水 200ml → 冰塊至 400ml","冰水 250ml → 冰塊至 450ml","冰水 300ml → 冰塊至 500ml","冰水 300ml → 冰塊至 450ml"] },
+    { drinkIdx:2, q:"草莓醋飲冰沙機打幾下？", correct:"2-3下", options:["1下","2-3下","3-4下","5下"] },
+    { drinkIdx:2, q:"草莓醋飲組合時瓶底放？", correct:"糖2＋果醋60cc＋果醬30cc", options:["糖＋果醋","果醋＋果醬","糖2＋果醋60cc＋果醬30cc","直接倒冰沙水"] },
+  ],
+  fill: [
+    // 草莓牛奶
+    { drinkIdx:0, q:"草莓牛奶：冷凍草莓 ___ g", answer:"150", hint:"150g" },
+    { drinkIdx:0, q:"草莓牛奶：牛奶 ___ cc", answer:"120", hint:"120cc" },
+    { drinkIdx:0, q:"草莓牛奶：草莓果醬 ___ cc", answer:"30", hint:"30cc" },
+    { drinkIdx:0, q:"草莓牛奶：冰水 ___ cc", answer:"180", hint:"180cc" },
+    // 草莓雷夢
+    { drinkIdx:1, q:"草莓雷夢：檸檬汁 ___ cc", answer:"20", hint:"20cc" },
+    { drinkIdx:1, q:"草莓雷夢：草莓果醬 ___ cc", answer:"60", hint:"60cc" },
+    { drinkIdx:1, q:"草莓雷夢：使用500量杯倒入冰水 ___ ml冰塊至 450ml", answer:"250", hint:"冰水 250ml" },
+    { drinkIdx:1, q:"草莓雷夢冰沙機打 ___ 下", answer:"3-4", hint:"3-4下" },
+    // 草莓醋飲
+    { drinkIdx:2, q:"草莓醋飲：果醋 ___ cc", answer:"60", hint:"60cc" },
+    { drinkIdx:2, q:"草莓醋飲：草莓果醬 ___ cc", answer:"30", hint:"30cc" },
+    { drinkIdx:2, q:"草莓醋飲甜度固定 ___", answer:"2", hint:"固定甜度 2" },
+    { drinkIdx:2, q:"草莓醋飲：使用500量杯倒入冰水 ___ ml冰塊至 450ml", answer:"250", hint:"冰水 250ml" },
+    { drinkIdx:2, q:"草莓醋飲：使用500量杯加水250ml冰塊至 ___ ml", answer:"450", hint:"冰塊至 450ml" },
+  ],
+  order: [
+    {
+      drinkIdx:0,
+      q:"請將草莓牛奶的製作步驟排列正確順序",
+      steps:["瓶底放果醬，倒入草莓冰沙","冰沙機依序加入糖＋草莓＋水＋牛奶，打至綿密"],
+      correct:[1,0]
+    },
+    {
+      drinkIdx:1,
+      q:"請將草莓雷夢的製作步驟排列正確順序",
+      steps:["瓶底放糖＋檸檬＋果醬，倒入碎冰水","500量杯加冰水250ml＋冰塊至450ml，打3-4下"],
+      correct:[1,0]
+    },
+    {
+      drinkIdx:2,
+      q:"請將草莓醋飲的製作步驟排列正確順序",
+      steps:["瓶底放糖2＋果醋60cc＋果醬30cc，倒入碎冰水","500量杯加冰水250ml＋冰塊至450ml，打2-3下"],
+      correct:[1,0]
+    },
+  ],
+};
+
+let mode = 'choice';
+let questions = [];
+let qIdx = 0;
+let score = 0;
+let answered = false;
+let sessionLog = [];
+let dragChip = null;
+let slotContents = [];
+
+function shuffle(arr) { return [...arr].sort(() => Math.random() - .5); }
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mode-'+m).classList.add('active');
+  startQuiz();
+}
+
+function startQuiz() {
+  const pool = questionBank[mode];
+  questions = shuffle(pool).slice(0, mode === 'order' ? 3 : 9);
+  qIdx = 0; score = 0; answered = false; sessionLog = [];
+  document.getElementById('score').textContent = 0;
+  document.getElementById('result-screen').classList.remove('show');
+  document.getElementById('quiz-card').style.display = '';
+  document.querySelector('.score-bar').style.display = '';
+  document.querySelector('.mode-row').style.display = '';
+  renderQ();
+}
+
+function renderQ() {
+  if (qIdx >= questions.length) { showResult(); return; }
+  answered = false;
+  const q = questions[qIdx];
+  const d = drinks[q.drinkIdx];
+  document.getElementById('q-num').textContent = qIdx + 1;
+  document.getElementById('q-total').textContent = questions.length;
+  const progress = (qIdx / questions.length * 100).toFixed(0);
+
+  let inner = `
+    <div class="card-top" style="background:${d.lightBg};border-color:${d.color}">
+      <div class="drink-row">
+        <div class="drink-emoji">${d.emoji}</div>
+        <div>
+          <div class="drink-tag">${d.tag}</div>
+          <div class="drink-name">${d.name}</div>
+        </div>
+      </div>
+      <div class="progress-wrap"><div class="progress-fill" style="width:${progress}%;background:${d.color}"></div></div>
+    </div>
+  `;
+
+  if (mode === 'choice') inner += renderChoice(q, d);
+  else if (mode === 'fill') inner += renderFill(q, d);
+  else inner += renderOrder(q, d);
+
+  inner += `<div class="feedback" id="feedback"></div>`;
+  inner += `<div class="action-row">
+    <button class="btn btn-check" id="btn-check" style="background:${d.color}" onclick="checkAnswer()">確認答案</button>
+    <button class="btn btn-next" id="btn-next" style="display:none" onclick="nextQ()">下一題 →</button>
+  </div>`;
+
+  document.getElementById('quiz-card').innerHTML = inner;
+  if (mode === 'order') setupDrag();
+}
+
+// ── CHOICE ──
+let selectedChoice = null;
+function renderChoice(q, d) {
+  selectedChoice = null;
+  const opts = shuffle(q.options);
+  return `
+    <div class="question-area">
+      <div class="q-label">選擇題</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="choices">
+      ${opts.map((o,i) => `<button class="choice" id="c${i}" onclick="selectChoice(this,'${o.replace(/'/g,"\\'")}',${d.color?`'${d.color}'`:'null'},'${d.lightBg}')" data-val="${o.replace(/"/g,'&quot;')}">${o}</button>`).join('')}
+    </div>
+  `;
+}
+function selectChoice(el, val, color, lightBg) {
+  if (answered) return;
+  document.querySelectorAll('.choice').forEach(c => { c.style.borderColor='#EEE'; c.style.background='#FAFAFA'; });
+  el.style.borderColor = color;
+  el.style.background = lightBg;
+  selectedChoice = val;
+}
+function checkChoiceAnswer() {
+  const q = questions[qIdx];
+  const d = drinks[q.drinkIdx];
+  if (!selectedChoice) { showFeedback('請先選擇一個答案！', false); return false; }
+  const correct = selectedChoice === q.correct;
+  document.querySelectorAll('.choice').forEach(btn => {
+    if (btn.dataset.val === q.correct) btn.classList.add('correct');
+    else if (btn.dataset.val === selectedChoice && !correct) btn.classList.add('wrong');
+    btn.disabled = true;
+  });
+  if (correct) { score += 10; document.getElementById('score').textContent = score; }
+  showFeedback(correct ? '✅ 答對了！' : `❌ 答錯了！\n正確答案是「${q.correct}」`, correct);
+  sessionLog.push({ name: d.name, q: q.q, ok: correct, correctAns: q.correct, userAns: selectedChoice });
+  selectedChoice = null;
+  return true;
+}
+
+// ── FILL ──
+function renderFill(q, d) {
+  const parts = q.q.split('___');
+  return `
+    <div class="question-area">
+      <div class="q-label">填空題</div>
+      <div class="q-text" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+        ${parts[0]}<input class="blank-input" id="fill-input" placeholder="？" autocomplete="off" style="color:${d.color}" onkeydown="if(event.key==='Enter')checkAnswer()">${parts[1]||''}
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  `;
+}
+function checkFillAnswer() {
+  const q = questions[qIdx];
+  const d = drinks[q.drinkIdx];
+  const inp = document.getElementById('fill-input');
+  const val = inp.value.trim();
+  if (!val) { showFeedback('請先填入答案！', false); return false; }
+  const correct = val === q.answer;
+  inp.classList.add(correct ? 'correct' : 'wrong');
+  inp.disabled = true;
+  if (correct) { score += 10; document.getElementById('score').textContent = score; }
+  showFeedback(correct ? '✅ 答對了！' : `❌ 答錯了！\n正確答案是「${q.answer}」（${q.hint}）`, correct);
+  sessionLog.push({ name: d.name, q: q.q, ok: correct, correctAns: q.hint, userAns: val });
+  return true;
+}
+
+// ── ORDER ──
+function renderOrder(q, d) {
+  slotContents = Array(q.steps.length).fill(null);
+  const shuffled = shuffle(q.steps.map((s,i) => ({text:s, origIdx:i})));
+  const slotPlaceholders = q.steps.map((_,i) => `第 ${i+1} 步`);
+  const slots = q.steps.map((_,i) => `
+    <div class="drop-slot" id="slot-${i}" data-slot="${i}">
+      <div class="slot-num">${i+1}</div>
+      <span id="slot-text-${i}" style="color:#AAA">${slotPlaceholders[i]}</span>
+    </div>
+  `).join('');
+  const chips = shuffled.map((s,i) => `
+    <div class="chip" id="chip-${i}" draggable="true" data-text="${s.text.replace(/"/g,'&quot;')}" data-orig="${s.origIdx}">${s.text}</div>
+  `).join('');
+  return `
+    <div class="question-area">
+      <div class="q-label">排序題</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="drag-area">
+      <div class="drag-label">📌 拖曳步驟到正確順序</div>
+      <div class="drop-slots">${slots}</div>
+      <div class="drag-label">🃏 步驟卡片</div>
+      <div class="drag-chips" id="chip-pool">${chips}</div>
+    </div>
+  `;
+}
+function setupDrag() {
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('dragstart', e => {
+      dragChip = { id: chip.id, orig: parseInt(chip.dataset.orig), text: chip.dataset.text };
+      setTimeout(() => chip.classList.add('dragging'), 0);
+    });
+    chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+  });
+  document.querySelectorAll('.drop-slot').forEach(slot => {
+    const idx = parseInt(slot.dataset.slot);
+    slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('over'); });
+    slot.addEventListener('dragleave', () => slot.classList.remove('over'));
+    slot.addEventListener('drop', e => {
+      e.preventDefault();
+      slot.classList.remove('over');
+      if (!dragChip) return;
+      // return old chip if slot occupied
+      if (slotContents[idx] !== null) {
+        const oldChip = document.querySelector(`.chip[data-orig="${slotContents[idx].orig}"]`);
+        if (oldChip) oldChip.classList.remove('used');
+      }
+      slotContents[idx] = dragChip;
+      document.getElementById(`slot-text-${idx}`).textContent = dragChip.text;
+      slot.classList.add('filled');
+      document.getElementById(dragChip.id).classList.add('used');
+      dragChip = null;
+    });
+  });
+}
+function checkOrderAnswer() {
+  const q = questions[qIdx];
+  const d = drinks[q.drinkIdx];
+  if (slotContents.some(s => s === null)) { showFeedback('請將所有步驟拖曳到對應位置！', false); return false; }
+  let correct = true;
+  slotContents.forEach((s, i) => {
+    const slotEl = document.getElementById('slot-'+i);
+    if (s.orig === q.correct[i]) slotEl.classList.add('correct');
+    else { slotEl.classList.add('wrong'); correct = false; }
+  });
+  if (correct) { score += 10; document.getElementById('score').textContent = score; }
+  const correctOrder = q.correct.map(ci => q.steps[ci]);
+  showFeedback(
+    correct ? '✅ 順序完全正確！' :
+    `❌ 順序有誤！正確順序：\n${correctOrder.map((s,i)=>`${i+1}️⃣ ${s}`).join('\n')}`,
+    correct
+  );
+  sessionLog.push({ name: d.name, q: '步驟排序', ok: correct, correctAns: correctOrder.map((s,i)=>`${i+1}. ${s}`).join('　'), userAns: slotContents.map(s=>s.text).join(' → ') });
+  return true;
+}
+
+// ── SHARED ──
+function checkAnswer() {
+  if (answered) return;
+  let ok = false;
+  if (mode === 'choice') ok = checkChoiceAnswer();
+  else if (mode === 'fill') ok = checkFillAnswer();
+  else ok = checkOrderAnswer();
+  if (!ok) return;
+  answered = true;
+  document.getElementById('btn-check').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'block';
+}
+function nextQ() { qIdx++; renderQ(); }
+function showFeedback(msg, ok) {
+  const fb = document.getElementById('feedback');
+  fb.textContent = msg;
+  fb.className = 'feedback show ' + (ok ? 'ok' : 'bad');
+}
+function showResult() {
+  document.getElementById('quiz-card').style.display = 'none';
+  document.querySelector('.score-bar').style.display = 'none';
+  document.querySelector('.mode-row').style.display = 'none';
+  const total = questions.length;
+  const maxScore = total * 10;
+  const pct = Math.round(score / maxScore * 100);
+  const emoji = pct >= 90 ? '🏆' : pct >= 70 ? '🎉' : pct >= 50 ? '💪' : '📖';
+  const msg = pct >= 90 ? '太厲害了！SOP 完全掌握！' : pct >= 70 ? '做得很好！再加強一些細節！' : pct >= 50 ? '繼續練習，你可以的！' : '多看幾次 SOP 再來挑戰！';
+
+  const wrongItems = sessionLog.filter(l => !l.ok);
+  const correctItems = sessionLog.filter(l => l.ok);
+
+  const allRows = sessionLog.map(l => `
+    <div class="breakdown-row">
+      <span style="flex:1;min-width:0">${l.name}：${l.q}</span>
+      <span class="breakdown-result" style="color:${l.ok?'#22C55E':'#EF4444'}">${l.ok?'✅':'❌'}</span>
+    </div>`).join('');
+
+  const wrongSection = wrongItems.length === 0 ? `
+    <div style="text-align:center;padding:16px 0;color:#22C55E;font-weight:800;font-size:14px">🎉 全部答對，沒有錯題！</div>
+  ` : wrongItems.map(l => `
+    <div style="background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:12px;padding:12px 14px;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:2px;color:#F87171;margin-bottom:5px">${l.name}</div>
+      <div style="font-size:13px;font-weight:700;color:#991B1B;margin-bottom:6px">❌ ${l.q}</div>
+      ${l.userAns ? `<div style="font-size:12px;color:#AAA;margin-bottom:3px">你的答案：${l.userAns}</div>` : ''}
+      <div style="font-size:13px;font-weight:800;color:#166534;background:#F0FDF4;border-radius:8px;padding:5px 10px;display:inline-block;margin-top:2px">✅ 正確答案：${l.correctAns}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('result-screen').innerHTML = `
+    <div class="result-emoji">${emoji}</div>
+    <div class="result-title">練習結束！</div>
+    <div class="result-score" style="color:${pct>=70?'#22C55E':'#E8426A'}">${score} <span style="font-size:18px;color:#AAA">/ ${maxScore}</span></div>
+    <div class="result-msg">${msg}<br><span style="font-size:13px">答對 ${correctItems.length} 題 ／ 答錯 ${wrongItems.length} 題</span></div>
+
+    <div style="text-align:left;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:3px;color:#BBB;margin-bottom:10px">📋 全部題目</div>
+      <div class="result-breakdown">${allRows}</div>
+    </div>
+
+    ${wrongItems.length > 0 ? `
+    <div style="text-align:left;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:3px;color:#EF4444;margin-bottom:10px">❌ 錯題複習（${wrongItems.length} 題）</div>
+      ${wrongSection}
+    </div>` : `<div style="margin-bottom:20px">${wrongSection}</div>`}
+
+    <button class="btn-restart" onclick="startQuiz()">🔄 再練一次</button>
+  `;
+  document.getElementById('result-screen').classList.add('show');
+}
+// 等密碼驗證後再啟動
+</script>
+</body>
+</html>
